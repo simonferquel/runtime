@@ -185,7 +185,7 @@ namespace System.Net.Http.Functional.Tests
                     // Configure the socket and return a stream for it.
                     Socket socket = saea.ConnectSocket;
                     socket.NoDelay = true;
-                    return new System.Net.Sockets.NetworkStream(socket, ownsSocket: true);
+                    return new NetworkStream(socket, ownsSocket: true);
                 }
                 catch (Exception error) when (!(error is OperationCanceledException))
                 {
@@ -193,7 +193,7 @@ namespace System.Net.Http.Functional.Tests
                     {
                         throw new OperationCanceledException(null, error, cancellationToken);
                     }
-                    throw new HttpRequestException(error.Message, error);
+                    throw;
                 }
                 finally
                 {

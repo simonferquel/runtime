@@ -69,7 +69,7 @@ namespace System.Net.Http
             _port = port;
             _proxyUri = proxyUri;
             _maxConnections = maxConnections;
-            _connectCallback = poolManager.Settings._connectCallback ?? ConnectHelper.ConnectAsync;
+            _connectCallback = poolManager.Settings._connectCallback != null ? WrapConnectCallback(poolManager.Settings._connectCallback) : ConnectHelper.ConnectAsync;
 
             _http2Enabled = (_poolManager.Settings._maxHttpVersion == HttpVersion.Version20);
 
@@ -1111,6 +1111,22 @@ namespace System.Net.Http
             public bool Equals(CachedConnection other) => ReferenceEquals(other._connection, _connection);
             public override bool Equals(object obj) => obj is CachedConnection && Equals((CachedConnection)obj);
             public override int GetHashCode() => _connection?.GetHashCode() ?? 0;
+        }
+
+        private static ConnectCallback WrapConnectCallback(ConnectCallback original)
+        {
+            return async (string host, int port, CancellationToken cancellationToken) =>
+            {
+                try
+                {
+                    return await original(host, port, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    // wraps exception in an HttpException indicating that we can retry on the next proxy (if there is another proxy in the chain)
+                    throw new HttpRequestException(ex.Message, ex, RequestRetryType.RetryOnNextProxy);
+                }
+            };
         }
     }
 }
